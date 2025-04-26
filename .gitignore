@@ -172,3 +172,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Ignorar todo dentro de carpetas card_images y backgrounds
+card_images/
+backgrounds/
+
+# Ignorar todo en dataset excepto __init__.py y generator.py
+dataset/*
+!dataset/__init__.py
+!dataset/generator.py

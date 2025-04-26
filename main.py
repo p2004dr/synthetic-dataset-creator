@@ -3,7 +3,7 @@ Punto de entrada principal para la generación del dataset sintético.
 """
 import time
 from config import DATASET_CONFIG, DIRECTORIES
-from utils.file_utils import create_directory_structure, print_directory_structure
+from utils.file_utils import create_directory_structure, print_directory_structure, clear_dataset
 from utils.visualization import visualize_dataset_samples
 from dataset.generator import generate_dataset
 
@@ -12,6 +12,8 @@ def main():
     # Usar directamente la configuración por defecto
     config = DATASET_CONFIG.copy()
     config['test_ratio'] = 1.0 - config['train_ratio'] - config['valid_ratio']
+
+    clear_dataset(config['output_dir'])
     
     print("=== Generador de Dataset Sintético ===")
     print(f"Imágenes totales: {config['total_images']}")
@@ -38,7 +40,7 @@ def main():
     print_directory_structure()
     
     # Visualizar algunas muestras (opcional, podrías establecer esto como constante en config.py)
-    show_samples = True  # Cambia a False si no quieres visualizar muestras
+    show_samples = False  # Cambia a False si no quieres visualizar muestras
     if show_samples:
         visualize_dataset_samples("Train Dataset", config['train_images_dir'], config['train_labels_dir'], config['classes'])
         visualize_dataset_samples("Validation Dataset", config['valid_images_dir'], config['valid_labels_dir'], config['classes'])

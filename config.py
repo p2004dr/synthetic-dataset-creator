@@ -12,7 +12,7 @@ TARGET_SIZE = (620, 620)
 # Configuración de directorios
 CARD_IMAGES_DIR = 'card_images'  # Carpeta con imágenes de cartas
 BACKGROUNDS_DIR = 'backgrounds'  # Carpeta con imágenes de fondo
-OUTPUT_DIR = 'dataset'  # Carpeta raíz del dataset
+OUTPUT_DIR = 'dataset/output_dataset'  # Carpeta raíz del dataset
 
 # Subdirectorios según la estructura solicitada
 TRAIN_DIR = os.path.join(OUTPUT_DIR, 'train')
@@ -67,7 +67,8 @@ DATASET_CONFIG = {
     'test_images_dir': TEST_IMAGES_DIR,
     'test_labels_dir': TEST_LABELS_DIR,
     'card_images_dir': CARD_IMAGES_DIR,
-    'backgrounds_dir': BACKGROUNDS_DIR
+    'backgrounds_dir': BACKGROUNDS_DIR,
+    'output_dir': OUTPUT_DIR,
 }
 
 # Definir los directorios que deben crearse

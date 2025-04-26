@@ -4,6 +4,7 @@ Utilidades para manejo de archivos y directorios.
 import os
 from datetime import datetime
 import uuid
+import shutil
 
 def create_directory_structure(directories):
     """
@@ -62,3 +63,29 @@ def generate_unique_filename(prefix="IMG", extension=".jpg"):
     """
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     return f"{prefix}{timestamp}_{uuid.uuid4().hex[:8]}{extension}"
+
+def clear_dataset(root_dir):
+    """
+    Elimina recursivamente el contenido de las carpetas train/images, train/labels,
+    valid/images, valid/labels, test/images y test/labels bajo el directorio root_dir.
+
+    Args:
+        root_dir (str): Directorio raíz del dataset (p.ej. 'dataset')
+    """
+    subdirs = [
+        ('train', 'images'),
+        ('train', 'labels'),
+        ('valid', 'images'),
+        ('valid', 'labels'),
+        ('test',  'images'),
+        ('test',  'labels'),
+    ]
+    for split, kind in subdirs:
+        path = os.path.join(root_dir, split, kind)
+        if os.path.isdir(path):
+            # elimina y vuelve a crear la carpeta vacía
+            shutil.rmtree(path)
+            os.makedirs(path, exist_ok=True)
+            print(f"Limpiado: {path}")
+        else:
+            print(f"No existe: {path}")

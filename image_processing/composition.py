@@ -5,6 +5,7 @@ import random
 import cv2
 import numpy as np
 from utils.annotations import check_overlap
+from image_processing import apply_transformations
 from image_processing.transformations import calculate_bounding_box
 
 def overlay_card(background, card, position):
@@ -61,7 +62,7 @@ def overlay_card(background, card, position):
             roi_copy[:, :, c] = roi[:, :, c] * (1 - alpha) + card_rgb[:, :, c] * alpha
         
         # Colocar el resultado de vuelta en el fondo
-        background[y_offset:y_offset+card_h, x_offset:y_offset+card_h] = roi_copy
+        background[y_offset:y_offset+card_h, x_offset:x_offset+card_w] = roi_copy
     else:
         # Si no hay transparencia, simplemente sobrescribir
         background[y_offset:y_offset+card_h, x_offset:x_offset+card_w] = card_img[:, :, :3]

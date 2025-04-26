@@ -112,9 +112,15 @@ def apply_transformations(card, scale_factor):
     alpha = alpha.rotate(angle, expand=True, resample=Image.BICUBIC)
     
     # Ajustes de iluminación/contraste aleatorios
-    brightness_factor = random.uniform(0.5, 1.7)
-    contrast_factor = random.uniform(0.5, 1.7)
-    saturation_factor = random.uniform(0.5, 1.7)
+    brightness_factor = random.uniform(0.9, 1.1)
+    contrast_factor = random.uniform(0.9, 1.1)
+    saturation_factor = random.uniform(0.9, 1.1)
+    if random.random() < 0.5:
+        brightness_factor = random.uniform(0.3, 1.7)
+    if random.random() < 0.5:
+        contrast_factor = random.uniform(0.3, 1.7)
+    if random.random() < 0.5:
+        saturation_factor = random.uniform(0.3, 1.7)
     
     enhancer = ImageEnhance.Brightness(pil_img)
     pil_img = enhancer.enhance(brightness_factor)
@@ -136,7 +142,7 @@ def apply_transformations(card, scale_factor):
     # Aplicar transformación de perspectiva con probabilidad del 50%
     if random.random() < 0.5:
         # Nivel de intensidad aleatorio entre 0.05 y 0.7
-        perspective_intensity = random.uniform(0.05, 0.7)
+        perspective_intensity = random.uniform(0.05, 0.5)
         transformed_img, _ = apply_perspective_transform(transformed_img, perspective_intensity)
     
     # Actualizar dimensiones
