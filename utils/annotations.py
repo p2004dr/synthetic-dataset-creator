@@ -79,51 +79,70 @@ def save_yolo_annotation(annotation_lines, output_path):
         for line in annotation_lines:
             label_file.write(line + '\n')
 
-def check_overlap(box1, boxes, max_overlap_ratio=0.5, max_coverage_ratio=0.8):
+def check_overlap(new_boxes, existing_boxes, max_coverage_ratio=0.4):
     """
-    Verifica si una nueva bounding box se solapa demasiado con las existentes.
-    
+    Verifica si alguna de las nuevas bounding boxes tapa más de un porcentaje
+    máximo de cualquier caja ya existente.
+
     Args:
-        box1: Tupla (xmin, ymin, xmax, ymax) de la nueva caja
-        boxes: Lista de tuplas (xmin, ymin, xmax, ymax) de cajas existentes
-        max_overlap_ratio: Proporción máxima de solapamiento permitida
-        max_coverage_ratio: Proporción máxima de cobertura permitida
-        
+        new_boxes: lista de tuplas (xmin,ymin,xmax,ymax) de las cajas nuevas
+        existing_boxes: lista de tuplas (xmin,ymin,xmax,ymax) de cajas existentes
+        max_coverage_ratio: proporción máxima de cobertura permitida (p.ej. 0.4)
+
     Returns:
-        True si hay solapamiento excesivo, False en caso contrario
+        True si alguna caja existente queda tapada > max_coverage_ratio, 
+        False en caso contrario.
     """
-    xmin1, ymin1, xmax1, ymax1 = box1
-    area1 = (xmax1 - xmin1) * (ymax1 - ymin1)
-    
-    if area1 <= 0:
-        return True  # Caja inválida
-    
-    for box2 in boxes:
-        xmin2, ymin2, xmax2, ymax2 = box2
-        area2 = (xmax2 - xmin2) * (ymax2 - ymin2)
-        
-        # Calcular el área de intersección
-        xmin_intersect = max(xmin1, xmin2)
-        ymin_intersect = max(ymin1, ymin2)
-        xmax_intersect = min(xmax1, xmax2)
-        ymax_intersect = min(ymax1, ymax2)
-        
-        # Si hay intersección
-        if xmin_intersect < xmax_intersect and ymin_intersect < ymax_intersect:
-            intersection_area = (xmax_intersect - xmin_intersect) * (ymax_intersect - ymin_intersect)
-            
-            # Calcular ratios de solapamiento respecto a ambas áreas
-            overlap_ratio1 = intersection_area / area1  # Cuánto del área de la nueva caja está solapada
-            overlap_ratio2 = intersection_area / area2  # Cuánto del área de la caja existente está solapada
-            
-            # Rechazar si:
-            # 1. La nueva carta está demasiado solapada con una existente
-            # 2. La nueva carta cubre demasiado de una existente
-            if overlap_ratio1 > max_overlap_ratio or overlap_ratio2 > max_overlap_ratio:
+    def area(box):
+        xmin, ymin, xmax, ymax = box
+        return max(0, xmax-xmin) * max(0, ymax-ymin)
+
+    for eb in existing_boxes:
+        eb_area = area(eb)
+        if eb_area <= 0:
+            continue
+        # calculamos cobertura total de eb por todas las new_boxes
+        covered = 0
+        for nb in new_boxes:
+            # intersección
+            xi_min = max(eb[0], nb[0])
+            yi_min = max(eb[1], nb[1])
+            xi_max = min(eb[2], nb[2])
+            yi_max = min(eb[3], nb[3])
+            if xi_min < xi_max and yi_min < yi_max:
+                inter = (xi_max - xi_min)*(yi_max - yi_min)
+                covered += inter
+        # si la cobertura total (suma de intersecciones) supera el umbral
+        if covered / eb_area > max_coverage_ratio:
+            return True
+
+    return False
+
+def check_image_coverage(image_box, existing_boxes, max_coverage_ratio=0.4):
+    """
+    Verifica que la caja completa `image_box` no cubra más del umbral
+    de ninguna caja ya existente.
+
+    Args:
+        image_box: tupla (xmin,ymin,xmax,ymax) de la imagen entera
+        existing_boxes: lista de tuplas (xmin,ymin,xmax,ymax)
+        max_coverage_ratio: proporción máxima permitida
+
+    Returns:
+        True si alguna existing_box queda cubierta > max_coverage_ratio
+    """
+    def area(box):
+        xmin, ymin, xmax, ymax = box
+        return max(0, xmax-xmin)*max(0, ymax-ymin)
+
+    xi1, yi1, xi2, yi2 = image_box
+    for eb in existing_boxes:
+        ex1, ey1, ex2, ey2 = eb
+        # intersección
+        xa = max(xi1, ex1); ya = max(yi1, ey1)
+        xb = min(xi2, ex2); yb = min(yi2, ey2)
+        if xa < xb and ya < yb:
+            inter = (xb-xa)*(yb-ya)
+            if inter / area(eb) > max_coverage_ratio:
                 return True
-                
-            # 3. Verificar si una carta está mayormente cubierta por otra (más del max_coverage_ratio)
-            if overlap_ratio1 > max_coverage_ratio or overlap_ratio2 > max_coverage_ratio:
-                return True
-    
-    return False  # No hay solapamiento excesivo
+    return False

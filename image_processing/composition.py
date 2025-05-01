@@ -4,7 +4,7 @@ Funciones para componer imágenes, colocando cartas sobre fondos.
 import random
 import cv2
 import numpy as np
-from utils.annotations import check_overlap
+from utils.annotations import check_overlap, check_image_coverage
 from image_processing import apply_transformations
 from image_processing.transformations import calculate_bounding_box
 
@@ -67,10 +67,14 @@ def overlay_card(background, card, position):
         # Si no hay transparencia, simplemente sobrescribir
         background[y_offset:y_offset+card_h, x_offset:x_offset+card_w] = card_img[:, :, :3]
     
-    # Calcular bounding box
-    xmin, ymin, xmax, ymax = calculate_bounding_box(card, x_offset, y_offset)
-    
-    return xmin, ymin, xmax, ymax
+    xmin_list, ymin_list, xmax_list, ymax_list = [], [], [], []
+    for bbox in card['bounding_boxes']:
+        xmin_list.append(bbox['xmin'] + x_offset)
+        ymin_list.append(bbox['ymin'] + y_offset)
+        xmax_list.append(bbox['xmax'] + x_offset)
+        ymax_list.append(bbox['ymax'] + y_offset)
+
+    return xmin_list, ymin_list, xmax_list, ymax_list
 
 def place_cards_on_background(background, cards, label_base_percent, placed_boxes=None):
     """
@@ -78,100 +82,101 @@ def place_cards_on_background(background, cards, label_base_percent, placed_boxe
     
     Args:
         background: Imagen de fondo
-        cards: Lista de cartas disponibles para colocar
+        cards: Lista de cartas disponibles para colocar (cada una con 'width', 'height' y 'bounding_boxes')
         label_base_percent: Diccionario con porcentajes base por tipo de carta
-        placed_boxes: Lista opcional de cajas ya colocadas
+        placed_boxes: Lista opcional de tuplas (xmin, ymin, xmax, ymax) ya colocadas
         
     Returns:
         Lista de objetos colocados con sus etiquetas y bounding boxes
     """
-    bg_height, bg_width = background.shape[:2]
-    bg_area = bg_width * bg_height
-    
+    bg_h, bg_w = background.shape[:2]
+    bg_area = bg_h * bg_w
+
     if placed_boxes is None:
         placed_boxes = []
-    
-    # Determinar una carta aleatoria para definir el número de cartas a colocar
+
+    # Elegir un label al azar sólo para decidir cuántas cartas colocar
     random_label = random.choice(list(label_base_percent.keys()))
     random_base_percent = label_base_percent[random_label]
-    
-    # Decidir el número de cartas en función del tamaño base
-    if random_base_percent > 0.15:  # Si el tamaño base es más del 15%
+
+    # Decidir cuántas cartas colocar según el porcentaje
+    if random_base_percent > 0.15:
         num_cards = random.randint(1, 5)
-    elif random_base_percent > 0.10:  # Si el tamaño base es 15% o menos
+    elif random_base_percent > 0.10:
         num_cards = random.randint(1, 7)
-    elif random_base_percent > 0.05:  # Si el tamaño base es 15% o menos
+    elif random_base_percent > 0.05:
         num_cards = random.randint(1, 10)
-    else:  # Si el tamaño base es 15% o menos
+    else:
         num_cards = random.randint(1, 12)
-    
-    # Para cada carta, aplicar transformaciones y colocarla
+
     objects = []
-    attempts_per_card = 15  # Número máximo de intentos para colocar cada carta sin solapamiento excesivo
-    
+    attempts_per_card = 15
+
     for _ in range(num_cards):
-        # Seleccionar una carta aleatoria
         card = random.choice(cards)
-        label = card['label']
-        
-        # Obtener el porcentaje base para este tipo de carta
-        base_percent = label_base_percent[label]
-        
-        # Aplicar variación aleatoria de ±20% al porcentaje base
+        label = card['bounding_boxes'][0]['label']  # asumimos que al menos hay 1 bbox
+        base_percent = label_base_percent.get(label, 0.05)
+
+        # Calcular scale_factor para mantener el área aproximada
         variation = random.uniform(0.9, 1.1)
         desired_area = base_percent * variation * bg_area
-        
-        # Calcular el factor de escala basado en el área deseada
-        original_area = card['width'] * card['height']
-        scale_factor = (desired_area / original_area) ** 0.5 if original_area > 0 else 0.1
-        
-        # Limitar el tamaño máximo para evitar que la carta sea más grande que el fondo
-        max_scale_w = bg_width / card['width']
-        max_scale_h = bg_height / card['height']
-        scale_factor = min(scale_factor, max_scale_w * 0.9, max_scale_h * 0.9)
-        
-        # Aplicar transformaciones con el factor de escala calculado
-        transformed_card = apply_transformations(card, scale_factor)
-        
-        # Intentar encontrar una posición sin solapamiento excesivo
-        card_placed = False
-        for attempt in range(attempts_per_card):
-            # Elegir una posición aleatoria
-            x_offset = random.randint(0, max(0, bg_width - transformed_card['width']))
-            y_offset = random.randint(0, max(0, bg_height - transformed_card['height']))
+        orig_area = card['width'] * card['height']
+        scale_factor = (desired_area / orig_area)**0.5 if orig_area > 0 else 0.1
+
+        # No dejar que la carta exceda el fondo
+        max_sf_w = bg_w / card['width']
+        max_sf_h = bg_h / card['height']
+        scale_factor = min(scale_factor, max_sf_w * 0.9, max_sf_h * 0.9)
+
+        # Aplicar transformaciones (redimensionar, rotar, etc.) que ajusten también las bboxes
+        transformed = apply_transformations(card, scale_factor)
+
+        for _ in range(attempts_per_card):
+            x_off = random.randint(0, max(0, bg_w - transformed['width']))
+            y_off = random.randint(0, max(0, bg_h - transformed['height']))
+
+            # Generar todas las cajas nuevas desplazadas
+            new_boxes = [
+                (b['xmin'] + x_off, b['ymin'] + y_off, b['xmax'] + x_off, b['ymax'] + y_off)
+                for b in transformed['bounding_boxes']
+            ]
+            # 1) Chequeo extra: la carta completa no puede tapar >40% de ninguna caja existente
+            full_box = (x_off, y_off,
+                        x_off + transformed['width'],
+                        y_off + transformed['height'])
             
-            # Calcular bounding box preliminar
-            xmin = x_offset
-            ymin = y_offset
-            xmax = x_offset + transformed_card['width']
-            ymax = y_offset + transformed_card['height']
-            
-            # Verificar solapamiento con las cartas ya colocadas
-            if not check_overlap((xmin, ymin, xmax, ymax), placed_boxes):
-                # Superponer la carta y obtener la bounding box real
-                xmin, ymin, xmax, ymax = overlay_card(background, transformed_card, (x_offset, y_offset))
-                
-                # Verificar que la bounding box es válida (área > 0)
-                if xmin < xmax and ymin < ymax:
-                    # Añadir a la lista de objetos
-                    placed_boxes.append((xmin, ymin, xmax, ymax))
-                    
-                    objects.append({
-                        'label': transformed_card['label'],
-                        'xmin': max(0, xmin),
-                        'ymin': max(0, ymin),
-                        'xmax': min(bg_width, xmax),
-                        'ymax': min(bg_height, ymax)
-                    })
-                    
-                    card_placed = True
-                    break
-        
-        # Si no se pudo colocar la carta después de todos los intentos, continuar con la siguiente
-        if not card_placed and attempt == attempts_per_card - 1:
-            print(f"No se pudo colocar una carta '{label}' sin solapamiento excesivo.")
-    
+            if check_image_coverage(full_box, placed_boxes, max_coverage_ratio=0.4):
+                continue
+
+            # 2) Chequeo original: las cajas definidas no tapan >40% de las existentes
+            if not check_overlap(new_boxes, placed_boxes):
+                # Pegar la carta y obtener de nuevo las coordenadas (por si clipping)
+                xmin_list, ymin_list, xmax_list, ymax_list = overlay_card(
+                    background, transformed, (x_off, y_off)
+                )
+
+                # Validar cada bbox y añadirla al resultado
+                for idx, b in enumerate(transformed['bounding_boxes']):
+                    xb = (
+                        xmin_list[idx],
+                        ymin_list[idx],
+                        xmax_list[idx],
+                        ymax_list[idx]
+                    )
+                    # bbox válida
+                    if xb[0] < xb[2] and xb[1] < xb[3]:
+                        placed_boxes.append(xb)
+                        objects.append({
+                            'label': b['label'],
+                            'xmin': max(0, xb[0]),
+                            'ymin': max(0, xb[1]),
+                            'xmax': min(bg_w, xb[2]),
+                            'ymax': min(bg_h, xb[3])
+                        })
+                break  # carta colocada, pasamos a la siguiente
+
     return objects
+
 
 def generate_label_base_percents(cards):
     """

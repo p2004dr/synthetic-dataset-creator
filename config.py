@@ -29,15 +29,14 @@ TEST_LABELS_DIR = os.path.join(TEST_DIR, 'labels')
 
 # Lista de clases en el orden solicitado
 CLASSES = [
-    'egg_nigiri', 'salmon_nigiri', 'squid_nigiri', 'wasabi', 
-    'tempura', 'sashimi', 'dumpling', 'pudding', 'maki_roll'
+    'dumpling', 'egg_nigiri', 'maki_roll', 'pudding', 'salmon_nigiri', 'sashimi', 'squid_nigiri', 'tempura', 'wasabi'
 ]
 
 # Crear un diccionario para mapear los nombres de etiquetas a IDs de clase
 LABEL_TO_ID = {label: i for i, label in enumerate(CLASSES)}
 
 # Parámetros de generación de datasets
-TOTAL_IMAGES = 100
+TOTAL_IMAGES = 50
 TRAIN_RATIO = 0.75
 VALID_RATIO = 0.15
 TEST_RATIO = 0.15

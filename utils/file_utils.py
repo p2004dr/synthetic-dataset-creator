@@ -2,6 +2,7 @@
 Utilidades para manejo de archivos y directorios.
 """
 import os
+import re
 from datetime import datetime
 import uuid
 import shutil
@@ -63,6 +64,24 @@ def generate_unique_filename(prefix="IMG", extension=".jpg"):
     """
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     return f"{prefix}{timestamp}_{uuid.uuid4().hex[:8]}{extension}"
+
+def normalize_filename(filename, group_variations=False):
+    """
+    Extrae el nombre de etiqueta a partir del nombre base de un archivo,
+    eliminando sufijos _<número> si group_variations es True.
+
+    Args:
+        filename: str, nombre base del archivo sin extensión
+        group_variations: bool, si True, agrupa variaciones eliminando sufijos
+
+    Returns:
+        str: nombre de etiqueta normalizado
+    """
+    if group_variations:
+        # Elimina sufijos como _1, _2, etc. al final del nombre
+        return re.sub(r'_[0-9]+$', '', filename)
+    return filename
+
 
 def clear_dataset(root_dir):
     """
