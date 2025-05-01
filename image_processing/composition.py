@@ -188,6 +188,11 @@ def generate_label_base_percents(cards):
     for card in cards:
         label = card['label']
         if label not in label_base_percent:
-            label_base_percent[label] = random.uniform(0.025, 0.25)
+            if random.random() < 0.75:
+                label_base_percent[label] = random.uniform(0.017, 0.20)
+            elif random.random() < 0.75:
+                label_base_percent[label] = random.uniform(0.020, 0.4)
+            else:
+                label_base_percent[label] = random.uniform(0.4, 1)
     
     return label_base_percent

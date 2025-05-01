@@ -40,7 +40,7 @@ def main():
     print_directory_structure()
     
     # Visualizar algunas muestras (opcional, podrías establecer esto como constante en config.py)
-    show_samples = False  # Cambia a False si no quieres visualizar muestras
+    show_samples = True  # Cambia a False si no quieres visualizar muestras
     if show_samples:
         visualize_dataset_samples("Train Dataset", config['train_images_dir'], config['train_labels_dir'], config['classes'])
         visualize_dataset_samples("Validation Dataset", config['valid_images_dir'], config['valid_labels_dir'], config['classes'])

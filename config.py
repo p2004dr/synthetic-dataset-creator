@@ -4,10 +4,10 @@ Configuración global para la generación de datasets de cartas de sushi.
 import os
 
 # Si es True, tratar filenames que terminen en _<número> como variaciones
-GROUP_VARIATIONS = True
+GROUP_VARIATIONS = False
 
 # Tamaño fijo para todas las imágenes
-TARGET_SIZE = (620, 620)
+TARGET_SIZE = (640, 640)
 
 # Configuración de directorios
 CARD_IMAGES_DIR = 'card_images'  # Carpeta con imágenes de cartas
@@ -30,7 +30,7 @@ TEST_LABELS_DIR = os.path.join(TEST_DIR, 'labels')
 # Lista de clases en el orden solicitado
 CLASSES = [
     'egg_nigiri', 'salmon_nigiri', 'squid_nigiri', 'wasabi', 
-    'tempura', 'sashimi', 'dumpling', 'chopsticks', 'pudding', 'maki_roll'
+    'tempura', 'sashimi', 'dumpling', 'pudding', 'maki_roll'
 ]
 
 # Crear un diccionario para mapear los nombres de etiquetas a IDs de clase
@@ -40,10 +40,10 @@ LABEL_TO_ID = {label: i for i, label in enumerate(CLASSES)}
 TOTAL_IMAGES = 100
 TRAIN_RATIO = 0.75
 VALID_RATIO = 0.15
-TEST_RATIO = 0.15  # Será ajustado al valor restante en el código
+TEST_RATIO = 0.15
 
 # Parámetros de solapamiento
-MAX_OVERLAP_RATIO = 0.5
+MAX_OVERLAP_RATIO = 0.6
 MAX_COVERAGE_RATIO = 0.8
 ATTEMPTS_PER_CARD = 15
 
